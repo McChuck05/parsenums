@@ -12,7 +12,7 @@ type
     of IntRep: intval*: int
     of FloatRep: floatval*: float
 
-proc parseNumber*(s: string, value: var IntOrFloat, start: int = 0, maxDigits: int = 0): int =
+proc parseNumber*(s: string, value: var Number, start: int = 0, maxDigits: int = 0): int =
   ## Parses a decimal, binary, or hex int, or a float.
   ## Hex and Bin numbers to parse can be processed with
   ## a maximum length of digits (not including leading marks).
