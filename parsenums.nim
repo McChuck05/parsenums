@@ -21,7 +21,7 @@ type
     of FloatRep: floatval*: float
 
 
-proc myParseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
+proc ParseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
   ## Parses a hexadecimal number and stores its value in ``number``.
   ## Hex numbers begin with "0x", "0X", "0#", or "#".
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -82,7 +82,7 @@ proc myParseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0)
     result = i - start
 
 
-proc myParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
+proc ParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
   ## Parses a binary number and stores its value in ``number``.
   ## Binary numbers begin with "0b", "0B", "0%", or "%", which do not count as digits.
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -138,7 +138,7 @@ proc myParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0)
     result = i - start
 
 
-proc myParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].} =
+proc ParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].} =
   ## Parses an int into ``number``. This cannot raise an overflow
   ## error. ``high(int)`` is returned for an overflow.
   ## The number of processed character is returned.
@@ -181,7 +181,7 @@ proc parseBiggestFloat(s: openArray[char], number: var BiggestFloat): int {.
   ## occurred.
   # Copied directly from the source without modification.
 
-proc myParseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} =
+proc ParseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} =
   ## Parses a float starting at `start` and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there occurred a parsing
   ## error.
@@ -214,17 +214,17 @@ proc parseNumber*(s: string, value: var Number, start: int = 0, maxDigits: int =
   if s.len == 0 or start < 0 or start >= s.len or s[start] notin (Signs + Digits + Dot + BinHexShortMarks):
     return
   if s.len > 1 and s[start] == '#' or (s[start] == '0' and s[start + 1] in HexMarks):
-    result = myParseHex(s, maybeInt, start, maxDigits)
+    result = ParseHex(s, maybeInt, start, maxDigits)
   elif s.len > 1 and s[start] == '%' or (s[start] == '0' and s[start + 1] in BinMarks):
-    result = myParseBin(s, maybeInt, start, maxDigits)
+    result = ParseBin(s, maybeInt, start, maxDigits)
   if result > 0:
     value = IntRep(intval: maybeInt)
   else:
-    result = myParseInt(s, maybeInt, start)  # maxDigits does not apply to decimal ints
+    result = ParseInt(s, maybeInt, start)  # maxDigits does not apply to decimal ints
     if result > 0:
       value = IntRep(intval: maybeInt)
     if result + start >= s.len:
       return
     if s[result + start] == '.':
-      result = myParseFloat(s, maybeFloat, start)  # maxDigits does not apply to floats
+      result = ParseFloat(s, maybeFloat, start)  # maxDigits does not apply to floats
       value = FloatRep(floatval: maybeFloat)
