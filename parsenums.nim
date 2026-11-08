@@ -160,7 +160,7 @@ proc myParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].}
   var inbounds = true
   while here < s.len and s[here] in {'0'..'9'}:
     var digit = ord(s[here]) - ord('0')
-    if inbounds and number <= (high(int) - digit) div 10:
+    if inbounds and (here - start <= 19) and (number <= (high(int) - digit) div 10):
       number = number * 10 + digit
     else:
       number = high(int)
