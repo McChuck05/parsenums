@@ -138,7 +138,7 @@ proc ParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): 
     result = i - start
 
 
-proc ParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].} =
+proc ParseInt*(s: string, number: var int, start: int = 0, maxDigits: int = 20): int {.raises: [].} =
   ## Parses an int into ``number``. This cannot raise an overflow
   ## error. ``high(int)`` is returned for an overflow.
   ## The number of processed character is returned.
@@ -152,6 +152,7 @@ proc ParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].} =
   if unlikely(start >= s.len or start < 0): return
   var minus = false
   var here = start
+  let max = min(maxDigits, 20)
   if s[start] == '+':
     inc(here)
   elif s[start] == '-':
@@ -160,7 +161,7 @@ proc ParseInt*(s: string, number: var int, start: int = 0): int {.raises: [].} =
   var inbounds = true
   while here < s.len and s[here] in {'0'..'9'}:
     var digit = ord(s[here]) - ord('0')
-    if inbounds and (here - start <= 19) and (number <= (high(int) - digit) div 10):
+    if inbounds and (here - start <= max) and (number <= (high(int) - digit) div 10):
       number = number * 10 + digit
     else:
       number = high(int)
@@ -203,8 +204,8 @@ proc ParseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} 
 
 proc parseNumber*(s: string, value: var Number, start: int = 0, maxDigits: int = 0): int =
   ## Parses a decimal, binary, or hex int, or a float.
-  ## Hex and Bin numbers to parse can be processed with
-  ## a maximum length of digits (not including leading marks).
+  ## Integers, Hex, and Bin numbers to parse can be processed with
+  ## a maximum length of digits (not including leading bin/hex marks).
   ##
   ## Returns the number of characters processed, or 0 if an error.
 
