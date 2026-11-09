@@ -1,7 +1,7 @@
 # parsenums.nim
 # copied from Nim's std/parseutils and std/strutils
 # modified by Charles Fout
-# October 2026
+# November 2026
 
 const
   Digits* = {'0'..'9'}
@@ -13,15 +13,14 @@ const
   BinHexShortMarks* = {'%', '#'}
   Dot* = {'.'}
 
-type
-  Number* = object
-    case
-    of Invalid: discard
-    of IntRep: intval*: int
-    of FloatRep: floatval*: float
+type Number* = object
+  case
+  of Invalid: discard
+  of IntRep: intval*: int
+  of FloatRep: floatval*: float
 
 
-proc ParseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
+proc parseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
   ## Parses a hexadecimal number and stores its value in ``number``.
   ## Hex numbers begin with "0x", "0X", "0#", or "#".
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -82,7 +81,7 @@ proc ParseHex*(s: string, number: var int, start: int = 0, maxDigits: int = 0): 
     result = i - start
 
 
-proc ParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
+proc parseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): int {.noSideEffect.} =
   ## Parses a binary number and stores its value in ``number``.
   ## Binary numbers begin with "0b", "0B", "0%", or "%", which do not count as digits.
   ## Returns the number of the parsed characters or 0 in case of an error.
@@ -138,10 +137,10 @@ proc ParseBin*(s: string, number: var int, start: int = 0, maxDigits: int = 0): 
     result = i - start
 
 
-proc ParseInt*(s: string, number: var int, start: int = 0, maxDigits: int = 20): int {.raises: [].} =
+proc parseInt*(s: string, number: var int, start: int = 0, maxDigits: int = 19): int {.raises: [].} =
   ## Parses an int into ``number``. This cannot raise an overflow
-  ## error. ``high(int)`` is returned for an overflow.
-  ## The number of processed character is returned.
+  ## error. ``high(int)`` (or negated value) is returned for an overflow.
+  ## The number of processed characters is returned.
   ## Cannot process low(int)
   runnableExamples:
     var res = 0
@@ -150,21 +149,27 @@ proc ParseInt*(s: string, number: var int, start: int = 0, maxDigits: int = 20):
 
   number = 0
   if unlikely(start >= s.len or start < 0): return
-  var minus = false
+  var minus, plus = false
   var here = start
-  let max = min(maxDigits, 20)
+  let max: int = if maxDigits <= 0: 19 else: min(maxDigits, 19)
   if s[start] == '+':
     inc(here)
+    plus = true
   elif s[start] == '-':
     inc(here)
     minus = true
   var inbounds = true
+  var howMany: int = 0
   while here < s.len and s[here] in {'0'..'9'}:
+    inc(howMany)
     var digit = ord(s[here]) - ord('0')
-    if inbounds and (here - start <= max) and (number <= (high(int) - digit) div 10):
+    if inbounds and (howMany <= max) and (number <= (high(int) - digit) div 10):
       number = number * 10 + digit
+      if howMany == max:
+        inbounds = false
     else:
-      number = high(int)
+      if inbounds and number > (high(int) - digit) div 10:
+        number = high(int)
       inbounds = false
     inc(here)
     while here < s.len and s[here] == '_':  # underscores are ignored
@@ -182,7 +187,7 @@ proc parseBiggestFloat(s: openArray[char], number: var BiggestFloat): int {.
   ## occurred.
   # Copied directly from the source without modification.
 
-proc ParseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} =
+proc parseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} =
   ## Parses a float starting at `start` and stores the value into `number`.
   ## Result is the number of processed chars or 0 if there occurred a parsing
   ## error.
@@ -204,8 +209,8 @@ proc ParseFloat*(s: string, number: var float, start = 0): int {.noSideEffect.} 
 
 proc parseNumber*(s: string, value: var Number, start: int = 0, maxDigits: int = 0): int =
   ## Parses a decimal, binary, or hex int, or a float.
-  ## Integers, Hex, and Bin numbers to parse can be processed with
-  ## a maximum length of digits (not including leading bin/hex marks).
+  ## Hex and Bin numbers to parse can be processed with
+  ## a maximum length of digits (not including leading marks or underscores).
   ##
   ## Returns the number of characters processed, or 0 if an error.
 
@@ -215,17 +220,17 @@ proc parseNumber*(s: string, value: var Number, start: int = 0, maxDigits: int =
   if s.len == 0 or start < 0 or start >= s.len or s[start] notin (Signs + Digits + Dot + BinHexShortMarks):
     return
   if s.len > 1 and s[start] == '#' or (s[start] == '0' and s[start + 1] in HexMarks):
-    result = ParseHex(s, maybeInt, start, maxDigits)
+    result = parseHex(s, maybeInt, start, maxDigits)
   elif s.len > 1 and s[start] == '%' or (s[start] == '0' and s[start + 1] in BinMarks):
-    result = ParseBin(s, maybeInt, start, maxDigits)
+    result = parseBin(s, maybeInt, start, maxDigits)
   if result > 0:
     value = IntRep(intval: maybeInt)
   else:
-    result = ParseInt(s, maybeInt, start)  # maxDigits does not apply to decimal ints
+    result = parseInt(s, maybeInt, start, maxDigits)
     if result > 0:
       value = IntRep(intval: maybeInt)
     if result + start >= s.len:
       return
     if s[result + start] == '.':
-      result = ParseFloat(s, maybeFloat, start)  # maxDigits does not apply to floats
+      result = parseFloat(s, maybeFloat, start)  # maxDigits does not apply to floats
       value = FloatRep(floatval: maybeFloat)
